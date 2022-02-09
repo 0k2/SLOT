@@ -49,23 +49,23 @@ Module Var.
   Section defs.
     Context {T : Type}.
 
-    Inductive var_req_t :=
+    Inductive req_t :=
     | read
-    | write : T -> var_req_t.
+    | write : T -> req_t.
 
-    Definition var_ret_t req :=
+    Definition ret_t req :=
       match req with
       | read => T
       | write _ => True
       end.
 
-    Definition var_step (_ : PID) s req : T * var_ret_t req :=
+    Definition var_step (_ : PID) s req : T * ret_t req :=
       match req with
       | read => (s, s)
       | write new => (new, I)
       end.
 
-    Global Instance varDetHandler : DeterministicHandler var_req_t var_ret_t :=
+    Global Instance varDetHandler : DeterministicHandler req_t ret_t :=
       { det_h_state := T;
         det_h_state_transition := var_step;
       }.
@@ -95,11 +95,13 @@ Module Log.
 
     Definition State : Type := list Event.
 
-    Definition hist_req_t := PID -> Event.
+    Definition req_t := PID -> Event.
 
-    Definition step (pid : PID) (s : State) (req : hist_req_t) := (req pid :: s, I).
+    Definition ret_t := I.
 
-    Global Instance historyDetHandler : DeterministicHandler hist_req_t (fun _ => True) :=
+    Definition step (pid : PID) (s : State) (req : req_t) := (req pid :: s, ret_t).
+
+    Global Instance historyDetHandler : DeterministicHandler req_t (fun _ => True) :=
       { det_h_state := list Event;
         det_h_state_transition := step;
       }.
@@ -149,9 +151,11 @@ End ProcessDictionary.
 Module Self.
   Inductive req_t := self.
 
+  Definition ret_t := I.
+
   Global Instance selfDetHandler : DeterministicHandler req_t (fun _ => PID) :=
     { det_h_state := True;
-      det_h_state_transition pid _ _ := (I, pid)
+      det_h_state_transition pid _ _ := (ret_t, pid)
     }.
 
   Definition t := deterministicHandler selfDetHandler.
